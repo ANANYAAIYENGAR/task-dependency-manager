@@ -4,7 +4,13 @@ from rest_framework import status
 
 from .models import Task, TaskDependency
 from .serializers import TaskDependencySerializer
-from .utils import detect_cycle, build_dependency_graph
+from .utils import (
+    detect_cycle,
+    build_dependency_graph,
+    update_task_status,
+    update_dependent_tasks
+)
+
 
 class AddTaskDependencyView(APIView):
 
@@ -48,11 +54,10 @@ class AddTaskDependencyView(APIView):
         )
 
         if cycle_found:
-            path.append(depends_on_id)
             return Response(
                 {
                     "error": "Circular dependency detected",
-                    "path": path
+                    "path": path + [depends_on_id]
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -65,3 +70,38 @@ class AddTaskDependencyView(APIView):
 
         serializer = TaskDependencySerializer(dependency)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UpdateTaskStatusView(APIView):
+
+    def patch(self, request, task_id):
+        new_status = request.data.get('status')
+
+        if new_status not in ['pending', 'in_progress', 'completed', 'blocked']:
+            return Response(
+                {"error": "Invalid status"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            return Response(
+                {"error": "Task not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        task.status = new_status
+        task.save()
+
+        # Update dependent tasks if task is completed or blocked
+        if new_status in ['completed', 'blocked']:
+            update_dependent_tasks(task)
+
+        return Response(
+            {
+                "id": task.id,
+                "status": task.status
+            },
+            status=status.HTTP_200_OK
+        )

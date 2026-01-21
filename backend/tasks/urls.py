@@ -8,3 +8,13 @@ urlpatterns = [
         name='add-task-dependency'
     ),
 ]
+
+from .views import UpdateTaskStatusView
+
+urlpatterns += [
+    path(
+        'tasks/<int:task_id>/',
+        UpdateTaskStatusView.as_view(),
+        name='update-task-status'
+    ),
+]
