@@ -18,3 +18,14 @@ urlpatterns += [
         name='update-task-status'
     ),
 ]
+
+from .views import TaskGraphView
+
+urlpatterns += [
+    path(
+        'graph/',
+        TaskGraphView.as_view(),
+        name='task-graph'
+    ),
+]
+

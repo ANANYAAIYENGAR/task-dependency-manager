@@ -11,6 +11,18 @@ from .utils import (
     update_dependent_tasks
 )
 
+class TaskGraphView(APIView):
+
+    def get(self, request):
+        tasks = Task.objects.all().values("id", "title", "status")
+        dependencies = TaskDependency.objects.all().values(
+            "task_id", "depends_on_id"
+        )
+
+        return Response({
+            "tasks": list(tasks),
+            "dependencies": list(dependencies)
+        })
 
 class AddTaskDependencyView(APIView):
 
